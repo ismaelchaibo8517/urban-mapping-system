@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro - Urban Mapping</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <a href="/" class="logo">🗺️ Urban Mapping</a>
+        <div class="nav-links">
+            <a href="/login" class="btn">🔑 Entrar</a>
+        </div>
+    </header>
+
+    <div class="auth-container">
+        <div class="card">
+            <h2>📝 Criar Nova Conta</h2>
+            
+            <form id="registerForm">
+                <div class="form-group">
+                    <label>Nome completo:</label>
+                    <input type="text" id="name" class="form-control" placeholder="Seu nome completo" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Email:</label>
+                    <input type="email" id="email" class="form-control" placeholder="seu@email.com" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Senha:</label>
+                    <input type="password" id="password" class="form-control" placeholder="Mínimo 6 caracteres" required minlength="6">
+                </div>
+                
+                <button type="submit" class="btn btn-success" style="width: 100%;">📋 Criar Conta</button>
+            </form>
+            
+            <div style="text-align: center; margin-top: 1rem;">
+                <p>Já tem conta? <a href="/login">Faça login aqui</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name, email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('✅ Conta criada com sucesso!');
+                    window.location.href = '/login';
+                } else {
+                    alert('❌ ' + data.error);
+                }
+            } catch (error) {
+                alert('❌ Erro de conexão');
+            }
+        });
+    </script>
+</body>
+</html>

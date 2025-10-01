@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportar Problema - Urban Mapping</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        .report-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 20px;
+        }
+        
+        .report-header {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .report-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        #reportMap {
+            height: 400px;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+            margin-top: 2rem;
+        }
+        
+        /* Estilos do sistema de passos */
+        .steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .step {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: 500;
+            color: #6c757d;
+            transition: all 0.3s ease;
+        }
+
+        .step.active {
+            background: #3498db;
+            color: white;
+        }
+
+        .form-step {
+            display: none;
+        }
+
+        .form-step.active {
+            display: block;
+        }
+
+        .location-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 1rem 0;
+        }
+
+        .btn-location {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            font-size: 16px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-location:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        .location-status {
+            background: #e8f5e8;
+            border: 2px solid #27ae60;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 1rem 0;
+        }
+
+        .coords {
+            font-family: monospace;
+            font-size: 12px;
+            color: #2c3e50;
+            margin-top: 5px;
+        }
+
+        .problem-categories {
+            margin: 1rem 0;
+        }
+
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 1rem 0;
+        }
+
+        .category-item {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .category-item:hover {
+            border-color: #3498db;
+            transform: translateY(-2px);
+        }
+
+        .category-item.selected {
+            border-color: #27ae60;
+            background: #e8f5e8;
+        }
+
+        .category-item span {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .photo-upload {
+            margin: 1rem 0;
+        }
+
+        .upload-area {
+            border: 3px dashed #dee2e6;
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover {
+            border-color: #3498db;
+            background: #f8f9fa;
+        }
+
+        .photo-preview {
+            position: relative;
+            margin-top: 1rem;
+            text-align: center;
+        }
+
+        .photo-preview img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .btn-remove-photo {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .step-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 2rem;
+        }
+
+        .btn-next, .btn-back {
+            width: 48%;
+        }
+
+        .btn-next {
+            background: #27ae60;
+        }
+
+        .btn-back {
+            background: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="/" class="logo">🗺️ Urban Mapping</a>
+        <div class="nav-links">
+            <span id="userWelcome" style="margin-right: 1rem;"></span>
+            <a href="/dashboard" class="btn btn-secondary">📊 Voltar ao Dashboard</a>
+            <button onclick="logout()" class="btn btn-danger">🚪 Sair</button>
+        </div>
+    </header>
+
+    <div class="report-container">
+        <div class="report-header">
+            <h1>📝 Reportar Problema Urbano</h1>
+            <p>Ajude a melhorar sua cidade reportando problemas de infraestrutura</p>
+        </div>
+
+        <div class="report-content">
+            <!-- Indicador de Passos -->
+            <div class="steps">
+                <div class="step active" data-step="1">1. Localização</div>
+                <div class="step" data-step="2">2. Problema</div>
+                <div class="step" data-step="3">3. Foto</div>
+            </div>
+
+            <form id="reportForm">
+                <!-- PASSO 1: Localização -->
+                <div class="form-step active" data-step="1">
+                    <h3>📍 Onde está o problema?</h3>
+                    
+                    <div class="form-group">
+                        <label>Cidade:</label>
+                        <select id="reportCity" class="form-control" required>
+                            <option value="">Selecione a cidade</option>
+                            <option value="Chimoio">Chimoio</option>
+                            <option value="Beira">Beira</option>
+                        </select>
+                    </div>
+
+                    <div id="reportMap"></div>
+
+                    <div class="location-buttons">
+                        <button type="button" onclick="getUserLocation()" class="btn btn-location">
+                            <span>📍</span>
+                            Obter Minha Localização Atual
+                        </button>
+                    </div>
+
+                    <div id="locationStatus" class="location-status">
+                        <div id="locationInfo">
+                            <span>🗺️ Localização: <strong id="locationText">Não selecionada</strong></span>
+                            <div id="locationCoords" class="coords"></div>
+                        </div>
+                    </div>
+
+                    <div class="step-buttons">
+                        <button type="button" class="btn btn-next" onclick="nextStep(2)">Próximo →</button>
+                    </div>
+                </div>
+
+                <!-- PASSO 2: Tipo de Problema -->
+                <div class="form-step" data-step="2">
+                    <h3>🔧 Qual o tipo de problema?</h3>
+                    
+                    <div class="problem-categories">
+                        <div class="category-grid">
+                            <div class="category-item" data-category="Buraco na Rua">
+                                <span>🕳️</span>
+                                <div>Buraco na Rua</div>
+                            </div>
+                            <div class="category-item" data-category="Acúmulo de Lixo">
+                                <span>🗑️</span>
+                                <div>Lixo Acumulado</div>
+                            </div>
+                            <div class="category-item" data-category="Vazamento de Água">
+                                <span>💧</span>
+                                <div>Vazamento de Água</div>
+                            </div>
+                            <div class="category-item" data-category="Rua Não Transitável">
+                                <span>🚧</span>
+                                <div>Rua Bloqueada</div>
+                            </div>
+                            <div class="category-item" data-category="Iluminação Pública">
+                                <span>💡</span>
+                                <div>Iluminação Pública</div>
+                            </div>
+                            <div class="category-item" data-category="Outros">
+                                <span>❓</span>
+                                <div>Outros</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Título do Problema:</label>
+                        <input type="text" id="reportTitle" class="form-control" placeholder="Ex: Buraco grande na avenida principal" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Descrição Detalhada:</label>
+                        <textarea id="reportDesc" class="form-control" placeholder="Descreva o problema em detalhes..." rows="4" required></textarea>
+                    </div>
+
+                    <div class="step-buttons">
+                        <button type="button" class="btn btn-back" onclick="prevStep(1)">← Voltar</button>
+                        <button type="button" class="btn btn-next" onclick="nextStep(3)">Próximo →</button>
+                    </div>
+                </div>
+
+                <!-- PASSO 3: Foto -->
+                <div class="form-step" data-step="3">
+                    <h3>📸 Adicione uma foto (Opcional)</h3>
+                    
+                    <div class="photo-upload">
+                        <div class="upload-area" id="uploadArea">
+                            <input type="file" id="reportPhoto" accept="image/*" capture="environment" style="display: none;">
+                            <div class="upload-content">
+                                <span style="font-size: 3rem;">📷</span>
+                                <p>Clique para tirar uma foto ou selecionar da galeria</p>
+                                <small>Mostre o problema claramente na foto</small>
+                            </div>
+                        </div>
+                        
+                        <div id="photoPreview" class="photo-preview" style="display: none;">
+                            <img id="previewImage">
+                            <button type="button" class="btn-remove-photo" onclick="removePhoto()">🗑️</button>
+                        </div>
+                    </div>
+
+                    <div class="step-buttons">
+                        <button type="button" class="btn btn-back" onclick="prevStep(2)">← Voltar</button>
+                        <button type="submit" class="btn btn-success">📤 Reportar Problema</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+        <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        // ========== VARIÁVEIS GLOBAIS ==========
+        let selectedLocation = null;
+        let tempMarker = null;
+        let selectedCategory = null;
+        let map;
+
+        // ========== VERIFICAÇÃO DE AUTENTICAÇÃO ==========
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            
+            if (!token || !user) {
+                alert('❌ Você precisa estar logado para reportar problemas!');
+                window.location.href = '/login';
+                return false;
+            }
+            
+            // Atualizar interface do usuário
+            const userWelcome = document.getElementById('userWelcome');
+            if (userWelcome) {
+                userWelcome.textContent = `👋 ${user.name}`;
+            }
+            
+            return true;
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        }
+
+        // ========== INICIALIZAÇÃO DO MAPA ==========
+        function initMap() {
+            if (!checkAuth()) return;
+            
+            // Inicializar mapa
+            map = L.map('reportMap').setView([-18.6657, 35.5296], 6);
+            
+            // Adicionar camada do mapa
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Adicionar evento de clique no mapa para selecionar localização
+            map.on('click', function(e) {
+                selectedLocation = e.latlng;
+                
+                const locationText = document.getElementById('locationText');
+                const locationCoords = document.getElementById('locationCoords');
+                
+                if (locationText && locationCoords) {
+                    locationText.textContent = 'Localização selecionada no mapa!';
+                    locationCoords.textContent = `Lat: ${e.latlng.lat.toFixed(6)}, Lng: ${e.latlng.lng.toFixed(6)}`;
+                }
+                
+                updateLocationMarker(e.latlng.lat, e.latlng.lng, '📍 Localização selecionada');
+            });
+        }
+
+        // ========== SISTEMA DE PASSOS ==========
+        function showStep(stepNumber) {
+            // Esconder todos os passos
+            document.querySelectorAll('.form-step').forEach(step => {
+                step.classList.remove('active');
+            });
+            
+            // Mostrar passo atual
+            const currentStep = document.querySelector(`.form-step[data-step="${stepNumber}"]`);
+            if (currentStep) {
+                currentStep.classList.add('active');
+            }
+            
+            // Atualizar indicador de passos
+            document.querySelectorAll('.step').forEach(step => {
+                step.classList.remove('active');
+            });
+            const currentStepIndicator = document.querySelector(`.step[data-step="${stepNumber}"]`);
+            if (currentStepIndicator) {
+                currentStepIndicator.classList.add('active');
+            }
+        }
+
+        function nextStep(next) {
+            // Validações antes de avançar
+            if (next === 2 && !selectedLocation) {
+                alert('❌ Por favor, selecione uma localização primeiro');
+                return;
+            }
+            if (next === 3 && !selectedCategory) {
+                alert('❌ Por favor, selecione um tipo de problema');
+                return;
+            }
+            
+            showStep(next);
+        }
+
+        function prevStep(prev) {
+            showStep(prev);
+        }
+
+        // ========== LOCALIZAÇÃO ==========
+        function getUserLocation() {
+            const locationText = document.getElementById('locationText');
+            const locationCoords = document.getElementById('locationCoords');
+            
+            if (!locationText || !locationCoords) return;
+            
+            locationText.textContent = 'Obtendo localização...';
+            locationCoords.textContent = '';
+            
+            if (!navigator.geolocation) {
+                locationText.textContent = 'Geolocalização não suportada';
+                alert('❌ Seu navegador não suporta geolocalização');
+                return;
+            }
+            
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    
+                    selectedLocation = { lat, lng };
+                    locationText.textContent = 'Localização obtida!';
+                    locationCoords.textContent = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+                    
+                    // Centralizar mapa
+                    if (map) {
+                        map.setView([lat, lng], 16);
+                        updateLocationMarker(lat, lng, '📍 Sua localização');
+                    }
+                    
+                    alert('✅ Localização obtida com sucesso!');
+                },
+                function(error) {
+                    let errorMessage = 'Erro ao obter localização: ';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage += 'Permissão negada';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage += 'Localização indisponível';
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage += 'Tempo esgotado';
+                            break;
+                        default:
+                            errorMessage += 'Erro desconhecido';
+                    }
+                    
+                    if (locationText) {
+                        locationText.textContent = errorMessage;
+                    }
+                    alert('❌ ' + errorMessage);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 60000
+                }
+            );
+        }
+
+        function updateLocationMarker(lat, lng, popupText) {
+            if (!map) return;
+            
+            if (tempMarker) {
+                map.removeLayer(tempMarker);
+            }
+            
+            tempMarker = L.marker([lat, lng])
+                .addTo(map)
+                .bindPopup(popupText)
+                .openPopup();
+        }
+
+        // ========== SELEÇÃO DE CATEGORIA ==========
+        function initEventListeners() {
+            console.log('🔧 Inicializando event listeners...');
+            
+            // Configurar eventos de categoria
+            document.querySelectorAll('.category-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    console.log('🎯 Categoria selecionada:', this.getAttribute('data-category'));
+                    
+                    // Remover seleção anterior
+                    document.querySelectorAll('.category-item').forEach(i => {
+                        i.classList.remove('selected');
+                    });
+                    
+                    // Selecionar atual
+                    this.classList.add('selected');
+                    selectedCategory = this.getAttribute('data-category');
+                    
+                    // Preencher automaticamente o título se vazio
+                    const titleInput = document.getElementById('reportTitle');
+                    if (titleInput && !titleInput.value) {
+                        const categoryText = this.querySelector('div');
+                        if (categoryText) {
+                            titleInput.value = categoryText.textContent;
+                        }
+                    }
+                });
+            });
+
+            // Configurar upload de foto
+            const uploadArea = document.getElementById('uploadArea');
+            const reportPhoto = document.getElementById('reportPhoto');
+            
+            if (uploadArea && reportPhoto) {
+                uploadArea.addEventListener('click', function() {
+                    reportPhoto.click();
+                });
+
+                reportPhoto.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    const preview = document.getElementById('photoPreview');
+                    const previewImage = document.getElementById('previewImage');
+                    
+                    if (file && preview && previewImage) {
+                        // Validar tamanho do arquivo (5MB)
+                        if (file.size > 5 * 1024 * 1024) {
+                            alert('❌ A foto é muito grande! Tamanho máximo: 5MB');
+                            this.value = '';
+                            return;
+                        }
+                        
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            previewImage.src = e.target.result;
+                            preview.style.display = 'block';
+                        }
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+
+            // ✅ CORREÇÃO: Configurar envio do formulário CORRETAMENTE
+            const reportForm = document.getElementById('reportForm');
+            if (reportForm) {
+                console.log('✅ Formulário encontrado, configurando submit...');
+                reportForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    console.log('📤 Formulário submetido!');
+                    await submitProblemReport();
+                });
+            } else {
+                console.error('❌ Formulário não encontrado!');
+            }
+
+            // ✅ CORREÇÃO ADICIONAL: Também adicionar evento de clique direto no botão
+            const submitButton = document.querySelector('#reportForm button[type="submit"]');
+            if (submitButton) {
+                console.log('✅ Botão de submit encontrado, configurando clique...');
+                submitButton.addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    console.log('🖱️ Botão clicado!');
+                    await submitProblemReport();
+                });
+            }
+        }
+
+        function removePhoto() {
+            const reportPhoto = document.getElementById('reportPhoto');
+            const photoPreview = document.getElementById('photoPreview');
+            
+            if (reportPhoto) reportPhoto.value = '';
+            if (photoPreview) photoPreview.style.display = 'none';
+        }
+
+        // ========== ENVIO DO FORMULÁRIO ==========
+        async function submitProblemReport() {
+            console.log('🚀 INICIANDO submitProblemReport...');
+            
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('❌ Você precisa estar logado para reportar problemas!');
+                window.location.href = '/login';
+                return;
+            }
+            
+            // Validações
+            if (!selectedLocation) {
+                alert('❌ Por favor, selecione uma localização no mapa');
+                showStep(1);
+                return;
+            }
+            
+            if (!selectedCategory) {
+                alert('❌ Por favor, selecione um tipo de problema');
+                showStep(2);
+                return;
+            }
+
+            const city = document.getElementById('reportCity').value;
+            const title = document.getElementById('reportTitle').value;
+            const description = document.getElementById('reportDesc').value;
+            
+            if (!city || !title) {
+                alert('❌ Por favor, preencha todos os campos obrigatórios');
+                return;
+            }
+
+            console.log('📋 Dados coletados:', {
+                city,
+                title, 
+                description,
+                category: selectedCategory,
+                location: selectedLocation
+            });
+
+            // Criar FormData
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('description', description);
+            formData.append('category', selectedCategory);
+            formData.append('city', city);
+            formData.append('latitude', selectedLocation.lat);
+            formData.append('longitude', selectedLocation.lng);
+            
+            // Adicionar foto se existir
+            const photoInput = document.getElementById('reportPhoto');
+            if (photoInput && photoInput.files[0]) {
+                formData.append('photo', photoInput.files[0]);
+                console.log('📸 Foto anexada:', photoInput.files[0].name);
+            }
+
+            try {
+                console.log('🔄 Enviando dados para /api/problems...');
+                
+                const response = await fetch('/api/problems', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                        // ❌ NÃO enviar 'Content-Type' - o browser define automaticamente para FormData
+                    },
+                    body: formData
+                });
+
+                console.log('📨 Status da resposta:', response.status);
+                const data = await response.json();
+                console.log('📨 Resposta do servidor:', data);
+
+                if (response.ok) {
+                    alert('✅ ' + data.message);
+                    console.log('📝 Problema reportado com sucesso:', data.problem);
+                    
+                    // Redirecionar para dashboard após sucesso
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 2000);
+                    
+                } else {
+                    alert('❌ ' + data.error);
+                    console.error('❌ Erro do servidor:', data.error);
+                }
+            } catch (error) {
+                console.error('❌ Erro de conexão:', error);
+                alert('❌ Erro de conexão. Tente novamente.');
+            }
+        }
+
+        // ========== INICIALIZAÇÃO ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 Página carregada!');
+            if (checkAuth()) {
+                console.log('🔑 Usuário autenticado, inicializando...');
+                initMap();
+                initEventListeners();
+                showStep(1);
+            }
+        });
+    </script>

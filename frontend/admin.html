@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Urban Mapping</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <a href="/" class="logo">🗺️ Urban Mapping</a>
+        <div class="nav-links">
+            <span id="adminWelcome"></span>
+            <a href="/dashboard" class="btn btn-secondary">📊 Ver Dashboard</a>
+            <a href="/profile" class="btn">👤 Perfil</a>
+            <button onclick="logout()" class="btn btn-danger">🚪 Sair</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="dashboard-header">
+            <h1>⚙️ Painel Administrativo</h1>
+            <p id="adminSubtitle">Gerencie todos os problemas e usuários do sistema</p>
+        </div>
+
+        <!-- Estatísticas -->
+        <div class="card">
+            <h3>📊 Estatísticas do Sistema</h3>
+            <div id="adminStats" class="stats-grid-admin">
+                <div class="stat-card-admin">
+                    <span class="stat-number-admin" id="totalProblems">0</span>
+                    <span>Total de Problemas</span>
+                </div>
+                <div class="stat-card-admin success">
+                    <span class="stat-number-admin" id="totalUsers">0</span>
+                    <span>Usuários</span>
+                </div>
+                <div class="stat-card-admin danger">
+                    <span class="stat-number-admin" id="reportedCount">0</span>
+                    <span>Reportados</span>
+                </div>
+                <div class="stat-card-admin warning">
+                    <span class="stat-number-admin" id="progressCount">0</span>
+                    <span>Em Progresso</span>
+                </div>
+                <div class="stat-card-admin success">
+                    <span class="stat-number-admin" id="resolvedCount">0</span>
+                    <span>Resolvidos</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="card">
+            <h3>🔧 Gerenciar Problemas</h3>
+            <div class="admin-filters">
+                <div class="filter-group">
+                    <label for="problemFilter">Filtrar por Status:</label>
+                    <select id="problemFilter" class="form-control" onchange="loadAllProblems()">
+                        <option value="all">Todos os status</option>
+                        <option value="reported">Apenas Reportados</option>
+                        <option value="in_progress">Apenas em Andamento</option>
+                        <option value="resolved">Apenas Resolvidos</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="cityFilter">Filtrar por Cidade:</label>
+                    <select id="cityFilter" class="form-control" onchange="loadAllProblems()">
+                        <option value="all">Todas as cidades</option>
+                        <option value="Chimoio">Chimoio</option>
+                        <option value="Beira">Beira</option>
+                    </select>
+                </div>
+                <button onclick="loadAllProblems()" class="btn" style="align-self: flex-end;">🔄 Atualizar</button>
+            </div>
+
+            <div id="allProblems">
+                <p>Carregando problemas...</p>
+            </div>
+        </div>
+
+        <!-- Lista de Usuários -->
+        <div class="card">
+            <h3>👥 Usuários do Sistema</h3>
+            <div id="usersList">
+                <p>Carregando usuários...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Verificar se é admin
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+
+        if (!token || !user || user.role !== 'admin') {
+            alert('❌ Acesso restrito a administradores');
+            window.location.href = '/';
+        }
+
+        // Atualizar interface
+        document.getElementById('adminWelcome').textContent = `👋 Admin: ${user.name}`;
+        document.getElementById('adminSubtitle').textContent += ` | Logado como: ${user.email}`;
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        }
+
+        // Carregar estatísticas
+        async function loadAdminStats() {
+            try {
+                const response = await fetch('/api/admin/stats', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const stats = await response.json();
+                    displayStats(stats);
+                } else {
+                    console.error('Erro ao carregar estatísticas');
+                }
+            } catch (error) {
+                console.error('Erro de conexão:', error);
+            }
+        }
+
+        function displayStats(stats) {
+            document.getElementById('totalProblems').textContent = stats.totalProblems;
+            document.getElementById('totalUsers').textContent = stats.totalUsers;
+            document.getElementById('reportedCount').textContent = stats.problemsByStatus.reported;
+            document.getElementById('progressCount').textContent = stats.problemsByStatus.in_progress;
+            document.getElementById('resolvedCount').textContent = stats.problemsByStatus.resolved;
+        }
+
+        // Carregar todos os problemas
+        // No admin.html, atualize a função loadAllProblems():
+async function loadAllProblems() {
+    try {
+        const response = await fetch('/api/admin/problems', {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            // Mostrar informações de permissões
+            const permissionsInfo = document.createElement('div');
+            permissionsInfo.className = 'alert alert-info';
+            permissionsInfo.innerHTML = `
+                <strong>📋 Suas Permissões:</strong><br>
+                <strong>Cidades:</strong> ${data.user_permissions.cities.join(', ')}<br>
+                <strong>Categorias:</strong> ${data.user_permissions.categories.includes('all') ? 'Todas' : data.user_permissions.categories.join(', ')}
+            `;
+            document.getElementById('allProblems').before(permissionsInfo);
+            
+            displayProblems(data.problems);
+        } else {
+            document.getElementById('allProblems').innerHTML = '<p class="alert alert-error">❌ Erro ao carregar problemas</p>';
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        document.getElementById('allProblems').innerHTML = '<p class="alert alert-error">❌ Erro de conexão</p>';
+    }
+}
+
+// E atualize a função displayProblems() para mostrar admin atribuído:
+function displayProblems(problems) {
+    if (problems.length === 0) {
+        document.getElementById('allProblems').innerHTML = '<p>Nenhum problema encontrado nas suas permissões</p>';
+        return;
+    }
+    
+    const problemsHtml = problems.map(problem => `
+        <div class="problem-card-admin">
+            <div class="problem-header">
+                <div style="flex: 1;">
+                    <h4 class="problem-title">${problem.title}</h4>
+                    <div class="problem-meta">
+                        <div>👤 ${problem.user_name || 'Anônimo'}</div>
+                        <div>🏙️ ${problem.city}</div>
+                        <div>📌 ${problem.category}</div>
+                        <div>📅 ${new Date(problem.created_at).toLocaleDateString('pt-BR')}</div>
+                        ${problem.assigned_admin_name ? `<div>👨‍💼 Atribuído: ${problem.assigned_admin_name}</div>` : ''}
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <span class="status-badge status-${problem.status}">
+                        ${getStatusText(problem.status)}
+                    </span>
+                </div>
+            </div>
+            
+            <div class="problem-description">
+                ${problem.description || 'Sem descrição'}
+            </div>
+            
+            <div class="admin-controls">
+                ${!problem.assigned_admin ? `
+                    <button onclick="assignProblem(${problem.id})" 
+                            class="btn-status" style="background: #3498db; color: white;">
+                        👨‍💼 Atribuir a Mim
+                    </button>
+                ` : ''}
+                
+                <button onclick="updateProblemStatus(${problem.id}, 'reported')" 
+                        class="btn-status ${problem.status === 'reported' ? 'active' : ''}" 
+                        style="background: #e74c3c; color: white;">
+                    📋 Reportado
+                </button>
+                <button onclick="updateProblemStatus(${problem.id}, 'in_progress')" 
+                        class="btn-status ${problem.status === 'in_progress' ? 'active' : ''}" 
+                        style="background: #f39c12; color: white;">
+                    🚧 Em Andamento
+                </button>
+                <button onclick="updateProblemStatus(${problem.id}, 'resolved')" 
+                        class="btn-status ${problem.status === 'resolved' ? 'active' : ''}" 
+                        style="background: #27ae60; color: white;">
+                    ✅ Resolvido
+                </button>
+            </div>
+        </div>
+    `).join('');
+    
+    document.getElementById('allProblems').innerHTML = problemsHtml;
+}
+
+// Adicione a função para atribuir problemas:
+async function assignProblem(problemId) {
+    if (!confirm('Deseja atribuir este problema para você?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/admin/problems/${problemId}/assign`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            alert('✅ ' + data.message);
+            loadAllProblems(); // Recarregar lista
+        } else {
+            alert('❌ ' + data.error);
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        alert('❌ Erro de conexão');
+    }
+}
+
+        function displayProblems(problems) {
+            if (problems.length === 0) {
+                document.getElementById('allProblems').innerHTML = '<p>Nenhum problema encontrado</p>';
+                return;
+            }
+            
+            const problemsHtml = problems.map(problem => `
+                <div class="problem-card-admin">
+                    <div class="problem-header">
+                        <h4 class="problem-title">${problem.title}</h4>
+                        <span class="status-badge status-${problem.status}">
+                            ${getStatusText(problem.status)}
+                        </span>
+                    </div>
+                    
+                    <div class="problem-meta">
+                        <div>👤 ${problem.user_name || 'Anônimo'}</div>
+                        <div>🏙️ ${problem.city}</div>
+                        <div>📌 ${problem.category}</div>
+                        <div>📅 ${new Date(problem.created_at).toLocaleDateString('pt-BR')}</div>
+                    </div>
+                    
+                    <div class="problem-description">
+                        ${problem.description || 'Sem descrição'}
+                    </div>
+                    
+                    <div class="admin-controls">
+                        <button onclick="updateProblemStatus(${problem.id}, 'reported')" 
+                                class="btn-status ${problem.status === 'reported' ? 'active' : ''}" 
+                                style="background: #e74c3c; color: white;">
+                            📋 Reportado
+                        </button>
+                        <button onclick="updateProblemStatus(${problem.id}, 'in_progress')" 
+                                class="btn-status ${problem.status === 'in_progress' ? 'active' : ''}" 
+                                style="background: #f39c12; color: white;">
+                            🚧 Em Andamento
+                        </button>
+                        <button onclick="updateProblemStatus(${problem.id}, 'resolved')" 
+                                class="btn-status ${problem.status === 'resolved' ? 'active' : ''}" 
+                                style="background: #27ae60; color: white;">
+                            ✅ Resolvido
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('allProblems').innerHTML = problemsHtml;
+        }
+
+        // Atualizar status do problema (admin)
+        async function updateProblemStatus(problemId, newStatus) {
+            if (!confirm(`Deseja marcar este problema como "${getStatusText(newStatus)}"?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/admin/problems/${problemId}/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('✅ ' + data.message);
+                    loadAllProblems(); // Recarregar lista
+                    loadAdminStats(); // Atualizar estatísticas
+                } else {
+                    alert('❌ ' + data.error);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('❌ Erro de conexão');
+            }
+        }
+
+        // Carregar usuários
+        async function loadUsers() {
+            try {
+                // Por enquanto, vamos carregar da lista de problemas
+                // Depois podemos criar uma rota específica para usuários
+                const response = await fetch('/api/problems');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Extrair usuários únicos dos problemas
+                    const usersMap = new Map();
+                    data.problems.forEach(problem => {
+                        if (problem.user_id && problem.user_name) {
+                            usersMap.set(problem.user_id, {
+                                id: problem.user_id,
+                                name: problem.user_name,
+                                problems: (usersMap.get(problem.user_id)?.problems || 0) + 1
+                            });
+                        }
+                    });
+                    
+                    const users = Array.from(usersMap.values());
+                    displayUsers(users);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar usuários:', error);
+                document.getElementById('usersList').innerHTML = '<p class="alert alert-error">❌ Erro ao carregar usuários</p>';
+            }
+        }
+
+        function displayUsers(users) {
+            if (users.length === 0) {
+                document.getElementById('usersList').innerHTML = '<p>Nenhum usuário encontrado</p>';
+                return;
+            }
+            
+            const usersHtml = `
+                <div class="users-table">
+                    <table style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Problemas Reportados</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${users.map(user => `
+                                <tr>
+                                    <td>${user.name}</td>
+                                    <td>${user.problems}</td>
+                                    <td>
+                                        <button class="btn" style="padding: 4px 8px; font-size: 12px;">
+                                            Ver Detalhes
+                                        </button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            document.getElementById('usersList').innerHTML = usersHtml;
+        }
+
+        function getStatusText(status) {
+            const statusMap = {
+                'reported': 'Reportado',
+                'in_progress': 'Em Andamento',
+                'resolved': 'Resolvido'
+            };
+            return statusMap[status] || status;
+        }
+
+        // Carregar dados ao inicializar
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAdminStats();
+            loadAllProblems();
+            loadUsers();
+        });
+    </script>
+</body>
+</html>

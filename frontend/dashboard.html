@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Urban Mapping</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+</head>
+<body>
+    <header>
+        <a href="/" class="logo">🗺️ Urban Mapping</a>
+        <div class="nav-links">
+            <span id="userWelcome" style="margin-right: 1rem;"></span>
+            <a href="/profile" class="btn">👤 Perfil</a>
+            <button onclick="logout()" class="btn btn-danger">🚪 Sair</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Cabeçalho -->
+        <div class="dashboard-header">
+            <h1>📊 Meu Dashboard</h1>
+            <p id="welcomeSubtitle">Acompanhe seus problemas reportados</p>
+        </div>
+
+        <!-- Cartões de Estatísticas -->
+        <div class="dashboard-grid">
+            <div class="dashboard-card">
+                <div class="dashboard-card-header">
+                    <div class="dashboard-card-icon">📋</div>
+                    <h3 class="dashboard-card-title">Meus Problemas</h3>
+                </div>
+                <div class="dashboard-card-content">
+                    <div class="stat-number" id="myProblemsCount">0</div>
+                    <p>Total reportados por você</p>
+                </div>
+            </div>
+
+            <div class="dashboard-card success">
+                <div class="dashboard-card-header">
+                    <div class="dashboard-card-icon">✅</div>
+                    <h3 class="dashboard-card-title">Resolvidos</h3>
+                </div>
+                <div class="dashboard-card-content">
+                    <div class="stat-number" id="resolvedCount">0</div>
+                    <p>Problemas já resolvidos</p>
+                </div>
+            </div>
+
+            <div class="dashboard-card warning">
+                <div class="dashboard-card-header">
+                    <div class="dashboard-card-icon">🚧</div>
+                    <h3 class="dashboard-card-title">Em Andamento</h3>
+                </div>
+                <div class="dashboard-card-content">
+                    <div class="stat-number" id="progressCount">0</div>
+                    <p>Problemas sendo resolvidos</p>
+                </div>
+            </div>
+
+            <div class="dashboard-card danger">
+                <div class="dashboard-card-header">
+                    <div class="dashboard-card-icon">📝</div>
+                    <h3 class="dashboard-card-title">Reportados</h3>
+                </div>
+                <div class="dashboard-card-content">
+                    <div class="stat-number" id="reportedCount">0</div>
+                    <p>Aguardando ação</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ações Rápidas -->
+        <div class="quick-actions">
+            <div class="action-card" onclick="reportProblem()">
+                <div class="action-card-icon">📝</div>
+                <h4 class="action-card-title">Reportar Problema</h4>
+                <p class="action-card-description">Informe um novo problema na sua cidade</p>
+            </div>
+
+            <div class="action-card" onclick="window.location.href='/profile'">
+                <div class="action-card-icon">👤</div>
+                <h4 class="action-card-title">Meu Perfil</h4>
+                <p class="action-card-description">Gerencie seus dados e senha</p>
+            </div>
+
+            <div class="action-card" onclick="window.location.href='/'">
+                <div class="action-card-icon">🗺️</div>
+                <h4 class="action-card-title">Ver Mapa</h4>
+                <p class="action-card-description">Veja todos os problemas no mapa</p>
+            </div>
+
+            <div class="action-card" onclick="loadMyProblems()">
+                <div class="action-card-icon">🔄</div>
+                <h4 class="action-card-title">Atualizar</h4>
+                <p class="action-card-description">Recarregar lista de problemas</p>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="card">
+            <h3>🔍 Filtros</h3>
+            <div class="dashboard-filters">
+                <div class="filter-group-dashboard">
+                    <label for="statusFilter">Status:</label>
+                    <select id="statusFilter" class="form-control" onchange="loadMyProblems()">
+                        <option value="all">Todos os status</option>
+                        <option value="reported">Reportados</option>
+                        <option value="in_progress">Em Andamento</option>
+                        <option value="resolved">Resolvidos</option>
+                    </select>
+                </div>
+                <div class="filter-group-dashboard">
+                    <label for="cityFilter">Cidade:</label>
+                    <select id="cityFilter" class="form-control" onchange="loadMyProblems()">
+                        <option value="all">Todas as cidades</option>
+                        <option value="Chimoio">Chimoio</option>
+                        <option value="Beira">Beira</option>
+                    </select>
+                </div>
+                <button onclick="loadMyProblems()" class="btn" style="align-self: flex-end;">🔄 Aplicar Filtros</button>
+            </div>
+        </div>
+
+        <!-- Lista de Problemas -->
+        <div class="card">
+            <h3>📋 Meus Problemas Reportados</h3>
+            <div id="problemsList" class="problems-list">
+                <p>Carregando seus problemas...</p>
+            </div>
+            <div id="noProblems" style="display: none;">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📝</div>
+                    <h3 class="empty-state-title">Nenhum problema encontrado</h3>
+                    <p class="empty-state-description">Você ainda não reportou nenhum problema ou não há problemas com os filtros selecionados.</p>
+                    <button onclick="reportProblem()" class="btn btn-success">Reportar Primeiro Problema</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mapa (Opcional) -->
+        <div class="dashboard-map-container">
+            <h3>🗺️ Meus Problemas no Mapa</h3>
+            <div id="dashboardMap"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        let currentUser = null;
+        let map = null;
+
+        // Verificar se está logado
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        
+        if (!token || !user) {
+            window.location.href = '/login';
+        }
+
+        // ✅ REDIRECIONAR ADMIN PARA PÁGINA ADMIN
+        if (user.role === 'admin') {
+            window.location.href = '/admin';
+        }
+
+        currentUser = user;
+
+        // Atualizar interface
+        document.getElementById('userWelcome').textContent = `👋 ${user.name}`;
+        document.getElementById('welcomeSubtitle').textContent = `Bem-vindo, ${user.name}! Email: ${user.email}`;
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        }
+
+        function reportProblem() {
+            window.location.href = '/report';
+        }
+
+        // Inicializar mapa
+        function initMap() {
+            map = L.map('dashboardMap').setView([-18.6657, 35.5296], 6);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+        }
+
+        // Carregar problemas do usuário
+        async function loadMyProblems() {
+            try {
+                const statusFilter = document.getElementById('statusFilter').value;
+                const cityFilter = document.getElementById('cityFilter').value;
+                
+                let url = '/api/problems?';
+                if (statusFilter !== 'all') url += `status=${statusFilter}&`;
+                if (cityFilter !== 'all') url += `city=${cityFilter}&`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Filtrar apenas problemas do usuário logado
+                    const myProblems = data.problems.filter(problem => problem.user_id === currentUser.id);
+                    
+                    updateStats(myProblems);
+                    displayProblems(myProblems);
+                    updateMap(myProblems);
+                } else {
+                    showError('Erro ao carregar problemas');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                showError('Erro de conexão');
+            }
+        }
+
+        function updateStats(problems) {
+            const total = problems.length;
+            const resolved = problems.filter(p => p.status === 'resolved').length;
+            const inProgress = problems.filter(p => p.status === 'in_progress').length;
+            const reported = problems.filter(p => p.status === 'reported').length;
+            
+            document.getElementById('myProblemsCount').textContent = total;
+            document.getElementById('resolvedCount').textContent = resolved;
+            document.getElementById('progressCount').textContent = inProgress;
+            document.getElementById('reportedCount').textContent = reported;
+        }
+
+        function displayProblems(problems) {
+            const problemsList = document.getElementById('problemsList');
+            const noProblems = document.getElementById('noProblems');
+            
+            if (problems.length === 0) {
+                problemsList.style.display = 'none';
+                noProblems.style.display = 'block';
+                return;
+            }
+            
+            problemsList.style.display = 'block';
+            noProblems.style.display = 'none';
+            
+            const problemsHtml = problems.map(problem => `
+                <div class="problem-item">
+                    <div class="problem-item-header">
+                        <h4 class="problem-item-title">${problem.title}</h4>
+                        <span class="status-badge status-${problem.status}">
+                            ${getStatusText(problem.status)}
+                        </span>
+                    </div>
+                    
+                    <div class="problem-item-meta">
+                        <span>🏙️ ${problem.city}</span>
+                        <span>📌 ${problem.category}</span>
+                        <span>📅 ${new Date(problem.created_at).toLocaleDateString('pt-BR')}</span>
+                    </div>
+                    
+                    <div class="problem-item-description">
+                        ${problem.description || 'Sem descrição detalhada'}
+                    </div>
+                    
+                    <!-- ❌ REMOVIDO: Botões de ação para usuários normais -->
+                    <!-- Usuários normais não podem alterar status dos problemas -->
+                </div>
+            `).join('');
+            
+            problemsList.innerHTML = problemsHtml;
+        }
+
+        function updateMap(problems) {
+            if (!map) return;
+            
+            // Limpar marcadores existentes
+            map.eachLayer(layer => {
+                if (layer instanceof L.Marker) {
+                    map.removeLayer(layer);
+                }
+            });
+            
+            // Adicionar novos marcadores
+            problems.forEach(problem => {
+                if (problem.latitude && problem.longitude) {
+                    const marker = L.marker([problem.latitude, problem.longitude])
+                        .addTo(map)
+                        .bindPopup(`
+                            <strong>${problem.title}</strong><br>
+                            ${problem.description || ''}<br>
+                            <small>Status: ${getStatusText(problem.status)}</small>
+                        `);
+                    
+                    // Cor diferente baseada no status
+                    let color = 'blue';
+                    if (problem.status === 'resolved') color = 'green';
+                    if (problem.status === 'in_progress') color = 'orange';
+                    if (problem.status === 'reported') color = 'red';
+                    
+                    marker.setIcon(
+                        L.divIcon({
+                            className: `custom-marker ${problem.status}`,
+                            html: `<div style="background: ${color}; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>`,
+                            iconSize: [20, 20]
+                        })
+                    );
+                }
+            });
+            
+            // Ajustar zoom para mostrar todos os marcadores
+            if (problems.length > 0 && problems[0].latitude) {
+                const group = new L.featureGroup(problems.map(p => 
+                    L.marker([p.latitude, p.longitude])
+                ));
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
+        }
+
+        function getStatusText(status) {
+            const statusMap = {
+                'reported': 'Reportado',
+                'in_progress': 'Em Andamento',
+                'resolved': 'Resolvido'
+            };
+            return statusMap[status] || status;
+        }
+
+        function showError(message) {
+            document.getElementById('problemsList').innerHTML = `
+                <div class="alert alert-error">
+                    ❌ ${message}
+                </div>
+            `;
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            loadMyProblems();
+        });
+    </script>
+</body>
+</html>
