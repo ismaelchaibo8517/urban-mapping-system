@@ -242,6 +242,25 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// Rota de teste para verificar se o backend está funcionando
+app.get('/api/test', (req, res) => {
+    res.json({ 
+        message: '✅ Backend está funcionando!', 
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development'
+    });
+});
+
+// Rota básica da raiz
+app.get('/', (req, res) => {
+    res.json({ 
+        message: '🚀 Urban Mapping Backend API', 
+        status: 'online',
+        version: '1.0.0'
+    });
+});
+
+
 // Buscar problemas (com sanitização)
 app.get('/api/problems', (req, res) => {
     try {
