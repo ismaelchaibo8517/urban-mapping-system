@@ -34,9 +34,8 @@ app.use(helmet({
 app.use(cors({
     origin: [
         "https://urban-mapping-system.vercel.app",
-    "https://urban-mapping-system.vercel.app/",
-        "http://localhost:3000",
-        "https://*.vercel.app"
+        "https://urban-mapping-system-git-main-ismaelchaibo8517.vercel.app",
+        "http://localhost:3000"
     ],
     credentials: true
 }));
