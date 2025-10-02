@@ -6,6 +6,7 @@ const CONFIG = {
     UPLOADS_BASE_URL: 'https://urban-mapping-backend.onrender.com'
 };
 
+
 // OPÇÃO 2 - HEROKU
 // const CONFIG = {
 //     API_BASE_URL: 'https://urban-mapping-backend.herokuapp.com/api',
