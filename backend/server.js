@@ -32,7 +32,11 @@ app.use(helmet({
 }));
 
 app.use(cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: [
+        "http://localhost:3000",
+        "https://urban-mapping-system.vercel.app",
+        "https://*.vercel.app"
+    ],
     credentials: true
 }));
 
@@ -48,7 +52,7 @@ app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
 // Servir arquivos estáticos
-app.use(express.static(path.join(__dirname, '../frontend')));
+//app.use(express.static(path.join(__dirname, '../frontend')));
 
 // ✅ SEGURANÇA: Configuração segura do Multer
 const storage = multer.diskStorage({
@@ -83,7 +87,7 @@ const upload = multer({
 });
 
 // Servir arquivos de upload
-app.use('/uploads', express.static(path.join(__dirname, '../frontend/uploads')));
+//app.use('/uploads', express.static(path.join(__dirname, '../frontend/uploads')));
 
 // ==================== FUNÇÕES SEGURAS DO DATABASE ====================
 function sanitizeInput(input) {
@@ -554,15 +558,15 @@ app.put('/api/admin/problems/:id/status', authenticateToken, checkAdminPermissio
 });
 
 // ==================== ROTAS DO FRONTEND ====================
-const frontendPaths = [
-    '/', '/login', '/register', '/dashboard', '/admin', '/report', '/profile'
-];
+//const frontendPaths = [
+  //  '/', '/login', '/register', '/dashboard', '/admin', '/report', '/profile'
+//];
 
-frontendPaths.forEach(route => {
-    app.get(route, (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/index.html'));
-    });
-});
+//frontendPaths.forEach(route => {
+//    app.get(route, (req, res) => {
+ //       res.sendFile(path.join(__dirname, '../frontend/index.html'));
+ //   });
+//});
 
 // ✅ SEGURANÇA: Handler de erros
 app.use((err, req, res, next) => {
