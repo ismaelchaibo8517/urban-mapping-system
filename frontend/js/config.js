@@ -2,9 +2,9 @@
 
 // OPÇÃO 1 - RENDER.com
 const CONFIG = {
-    API_BASE_URL: 'https://urban-mapping-backend.onrender.com/api',
-    UPLOADS_BASE_URL: 'https://urban-mapping-backend.onrender.com'
-};
+    API_BASE_URL: 'https://urban-mapping-system.onrender.com/api',
+    UPLOADS_BASE_URL: 'https://urban-mapping-system.onrender.com'
+};;
 
 
 // OPÇÃO 2 - HEROKU
